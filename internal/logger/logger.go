@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
 )
@@ -60,6 +61,12 @@ func BuildLogger(serviceName string) (*zap.Logger, error) {
 	}
 
 	cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	cfg.EncoderConfig = zapcore.EncoderConfig{
+		TimeKey:    "time",
+		LevelKey:   "level",
+		MessageKey: "message",
+		EncodeTime: zapcore.RFC3339TimeEncoder,
+	}
 
 	logger, err := cfg.Build()
 	if err != nil {
