@@ -9,6 +9,7 @@ import (
 	"github.com/blackjack/webcam"
 	"go.uber.org/zap"
 	"os"
+	"parkingCam/internal/logger"
 	"path/filepath"
 )
 
@@ -33,26 +34,6 @@ func (c *Cam) ListenAndServe() error {
 	return nil
 }
 
-func buildLogger() (*zap.Logger, error) {
-	cfg := zap.NewProductionConfig()
-	cfg.OutputPaths = []string{
-		filepath.Join("/var/log/", serviceName, "debug.log"),
-	}
-
-	cfg.ErrorOutputPaths = []string{
-		filepath.Join("/var/log/", serviceName, "error.log"),
-	}
-
-	cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-
-	logger, err := cfg.Build()
-	if err != nil {
-		return nil, fmt.Errorf("cannot build logger: %w", err)
-	}
-
-	return logger, nil
-}
-
 func Run() error {
 	cfg, err := readConfig()
 	if err != nil {
@@ -64,22 +45,22 @@ func Run() error {
 		return fmt.Errorf("cannot capture cam: %w", err)
 	}
 
-	logger, err := buildLogger()
+	l, err := logger.BuildLogger(serviceName)
 	if err != nil {
 		return fmt.Errorf("cannot build logger: %w", err)
 	}
 
-	cam := Cam{logger: logger, webcam: c, config: cfg}
+	cam := Cam{logger: l, webcam: c, config: cfg}
 	if err = cam.ListenAndServe(); err != nil {
 		return fmt.Errorf("cannot start listening cam: %w", err)
 	}
 
 	err = c.Close()
 	if err != nil {
-		logger.Error("cannot close cam", zap.Error(err))
+		l.Error("cannot close cam", zap.Error(err))
 	}
 
-	err = logger.Sync()
+	err = l.Sync()
 	if err != nil {
 		return fmt.Errorf("cannot sync logger: %w", err)
 	}
